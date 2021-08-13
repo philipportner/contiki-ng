@@ -1,0 +1,7 @@
+ifeq ($(NRF_USE_RTT),1)
+  ### Suppress the existing debug I/O in os/lib
+  CFLAGS += -DNRF_USE_RTT=1
+  MAKE_WITH_LIB_DBG_IO = 0
+  CONTIKI_CPU_DIRS += rtt
+  CONTIKI_CPU_SOURCEFILES += rtt-printf.c segger-rtt.c segger-rtt-printf.c
+endif

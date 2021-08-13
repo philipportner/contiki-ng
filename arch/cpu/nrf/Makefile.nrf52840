@@ -1,5 +1,8 @@
 include $(CONTIKI_CPU)/Makefile.nrfx  
 
+CONTIKI_CPU_SOURCEFILES += nrf-ieee-driver-arch.c
+CONTIKI_CPU_DIRS += net
+
 # Boards
 ifeq ($(BOARD), nrf52840/dongle)
   LDSCRIPT ?= $(CONTIKI_CPU)/ld/nrf52840-bootloader.ld
@@ -20,6 +23,8 @@ CFLAGS += -DCPU_CONF_PATH=\"nrf52840-conf.h\"
 CFLAGS += -mfloat-abi=hard -mfpu=fpv4-sp-d16
 
 LDFLAGS += -mfloat-abi=hard -mfpu=fpv4-sp-d16
+
+include $(CONTIKI_CPU)/Makefile.rtt
 
 include $(CONTIKI)/$(CONTIKI_NG_CM4_DIR)/Makefile.cm4
 

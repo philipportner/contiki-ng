@@ -1,0 +1,41 @@
+#ifndef PROJECT_CONF_H_
+#define PROJECT_CONF_H_
+
+#define LINKADDR_CONF_SIZE 2
+//#define LINKADDR_CONF_SIZE 8
+//#define DWM1001_USE_BT_ADDR_FOR_UWB 1
+
+#define APP_RADIO_CONF 1
+
+#if APP_RADIO_CONF == 1
+#define DW1000_CONF_CHANNEL        5
+#define DW1000_CONF_PRF            DWT_PRF_64M
+#define DW1000_CONF_PLEN           DWT_PLEN_128
+#define DW1000_CONF_PAC            DWT_PAC8
+#define DW1000_CONF_SFD_MODE       0
+#define DW1000_CONF_DATA_RATE      DWT_BR_6M8
+#define DW1000_CONF_PHR_MODE       DWT_PHRMODE_STD
+#define DW1000_CONF_PREAMBLE_CODE  9
+#define DW1000_CONF_SFD_TIMEOUT    (129 + 8 - 8)
+
+#elif APP_RADIO_CONF == 2
+#define DW1000_CONF_CHANNEL        2
+#define DW1000_CONF_PRF            DWT_PRF_64M
+#define DW1000_CONF_PLEN           DWT_PLEN_1024
+#define DW1000_CONF_PAC            DWT_PAC32
+#define DW1000_CONF_SFD_MODE       1
+#define DW1000_CONF_DATA_RATE      DWT_BR_110K
+#define DW1000_CONF_PHR_MODE       DWT_PHRMODE_STD
+#define DW1000_CONF_PREAMBLE_CODE  9
+#define DW1000_CONF_SFD_TIMEOUT    (1025 + 64 - 32)
+
+#else
+#error App: radio config is not set
+#endif
+#define DW1000_CONF_FRAMEFILTER 1
+#define DW1000_CONF_RANGING_ENABLED 1
+#define CSMA_CONF_MAX_FRAME_RETRIES 0
+#define DW1000_READ_RXDIAG 1
+//#define NETSTACK_CONF_RADIO        dw1000_driver
+//#define LOG_CONF_LEVEL_MAC 3
+#endif /* PROJECT_CONF_H_ */

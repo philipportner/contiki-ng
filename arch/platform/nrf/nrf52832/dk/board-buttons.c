@@ -32,81 +32,30 @@
  * \addtogroup nrf-platforms
  * @{
  *
+ * \addtogroup nrf52840-dk
+ * @{
+ *
  * \file
- *      Platform implementation for nRF
+ *         nRF52840 DK specific buttons driver implementation.
  * \author
- *      Yago Fontoura do Rosario <yago.rosario@hotmail.com.br>
+ *         Yago Fontoura do Rosario <yago.rosario@hotmail.com.br>
  */
 /*---------------------------------------------------------------------------*/
 #include "contiki.h"
-
-#include "dev/gpio-hal.h"
 #include "dev/button-hal.h"
-#include "dev/leds.h"
-#include "dev/serial-line.h"
-
-#include "random.h"
-#include "int-master.h"
-#include "sensors.h"
-#include "uarte-arch.h"
-#include "linkaddr-arch.h"
-#include "reset-arch.h"
-
-#include "dw1000.h"
-
-#include "lpm.h"
-
 /*---------------------------------------------------------------------------*/
-/* Log configuration */
-#include "sys/log.h"
-#define LOG_MODULE "NRF"
-#define LOG_LEVEL LOG_LEVEL_MAIN
+BUTTON_HAL_BUTTON(btn_1, "Button 1", NRF_BUTTON1_PORT, NRF_BUTTON1_PIN, \
+                  GPIO_HAL_PIN_CFG_PULL_UP, BUTTON_HAL_ID_BUTTON_ZERO, true);
+BUTTON_HAL_BUTTON(btn_2, "Button 2", NRF_BUTTON2_PORT, NRF_BUTTON2_PIN, \
+                  GPIO_HAL_PIN_CFG_PULL_UP, BUTTON_HAL_ID_BUTTON_ONE, true);
+BUTTON_HAL_BUTTON(btn_3, "Button 3", NRF_BUTTON3_PORT, NRF_BUTTON3_PIN, \
+                  GPIO_HAL_PIN_CFG_PULL_UP, BUTTON_HAL_ID_BUTTON_TWO, true);
+BUTTON_HAL_BUTTON(btn_4, "Button 4", NRF_BUTTON4_PORT, NRF_BUTTON4_PIN, \
+                  GPIO_HAL_PIN_CFG_PULL_UP, BUTTON_HAL_ID_BUTTON_THREE, true);
 /*---------------------------------------------------------------------------*/
-void
-platform_init_stage_one(void)
-{
-  gpio_hal_init();
-  leds_init();
-}
+BUTTON_HAL_BUTTONS(&btn_1, &btn_2, &btn_3, &btn_4);
 /*---------------------------------------------------------------------------*/
-void
-platform_init_stage_two(void)
-{
-  button_hal_init();
-
-  /* Seed value is ignored since hardware RNG is used. */
-  random_init(0x5678);
-
-#if PLATFORM_HAS_UARTE
-  uarte_init();
-  serial_line_init();
-#if BUILD_WITH_SHELL
-  uarte_set_input(serial_line_input_byte);
-#endif /* BUILD_WITH_SHELL */
-#endif /* PLATFORM_HAS_UARTE */
-  populate_link_address();
-
-  reset_debug();
-}
-/*---------------------------------------------------------------------------*/
-void
-platform_init_stage_three(void)
-{
-
-  dw1000_driver.set_value(RADIO_PARAM_PAN_ID, 0xabcd);
-  dw1000_driver.set_value(RADIO_PARAM_16BIT_ADDR,(((uint8_t*)&linkaddr_node_addr)[0]) << 8 | (((uint8_t*)&linkaddr_node_addr)[1])); // converting from big-endian format
- // dw1000_driver.set_value(RADIO_PARAM_16BIT_ADDR,0x89 << 8 | 0xbe); // converting from big-endian format
-  dw1000_driver.off();
-
-  process_start(&sensors_process, NULL);
-}
-/*---------------------------------------------------------------------------*/
-void
-platform_idle()
-{
-  lpm_drop();
-}
-/*---------------------------------------------------------------------------*/
-/**
- * @}
+/** 
+ * @} 
+ * @} 
  */

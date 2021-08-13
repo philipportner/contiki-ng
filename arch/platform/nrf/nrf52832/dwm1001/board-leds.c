@@ -32,81 +32,43 @@
  * \addtogroup nrf-platforms
  * @{
  *
+ * \addtogroup nrf52840-dk
+ * @{
+ *
  * \file
- *      Platform implementation for nRF
+ *         nRF52840 DK specific LED driver implementation.
  * \author
- *      Yago Fontoura do Rosario <yago.rosario@hotmail.com.br>
+ *         Yago Fontoura do Rosario <yago.rosario@hotmail.com.br>
  */
 /*---------------------------------------------------------------------------*/
 #include "contiki.h"
 
-#include "dev/gpio-hal.h"
-#include "dev/button-hal.h"
 #include "dev/leds.h"
-#include "dev/serial-line.h"
-
-#include "random.h"
-#include "int-master.h"
-#include "sensors.h"
-#include "uarte-arch.h"
-#include "linkaddr-arch.h"
-#include "reset-arch.h"
-
-#include "dw1000.h"
-
-#include "lpm.h"
-
 /*---------------------------------------------------------------------------*/
-/* Log configuration */
-#include "sys/log.h"
-#define LOG_MODULE "NRF"
-#define LOG_LEVEL LOG_LEVEL_MAIN
-/*---------------------------------------------------------------------------*/
-void
-platform_init_stage_one(void)
-{
-  gpio_hal_init();
-  leds_init();
-}
-/*---------------------------------------------------------------------------*/
-void
-platform_init_stage_two(void)
-{
-  button_hal_init();
-
-  /* Seed value is ignored since hardware RNG is used. */
-  random_init(0x5678);
-
-#if PLATFORM_HAS_UARTE
-  uarte_init();
-  serial_line_init();
-#if BUILD_WITH_SHELL
-  uarte_set_input(serial_line_input_byte);
-#endif /* BUILD_WITH_SHELL */
-#endif /* PLATFORM_HAS_UARTE */
-  populate_link_address();
-
-  reset_debug();
-}
-/*---------------------------------------------------------------------------*/
-void
-platform_init_stage_three(void)
-{
-
-  dw1000_driver.set_value(RADIO_PARAM_PAN_ID, 0xabcd);
-  dw1000_driver.set_value(RADIO_PARAM_16BIT_ADDR,(((uint8_t*)&linkaddr_node_addr)[0]) << 8 | (((uint8_t*)&linkaddr_node_addr)[1])); // converting from big-endian format
- // dw1000_driver.set_value(RADIO_PARAM_16BIT_ADDR,0x89 << 8 | 0xbe); // converting from big-endian format
-  dw1000_driver.off();
-
-  process_start(&sensors_process, NULL);
-}
-/*---------------------------------------------------------------------------*/
-void
-platform_idle()
-{
-  lpm_drop();
-}
+const leds_t leds_arch_leds[] = {
+  {
+    .port = 0,
+    .pin = NRF_GPIO_PIN_MAP(0,13),
+    .negative_logic = true
+  },
+  {
+    .port = 0,
+    .pin = NRF_GPIO_PIN_MAP(0,14),
+    .negative_logic = true
+  },
+  {
+    .port = 0,
+    .pin = NRF_GPIO_PIN_MAP(0,15),
+    .negative_logic = true
+  },
+  {
+    .port = 0,
+    .pin = NRF_GPIO_PIN_MAP(0,16),
+    .negative_logic = true
+  },
+};
 /*---------------------------------------------------------------------------*/
 /**
+ * @}
  * @}
  */

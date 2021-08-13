@@ -29,84 +29,28 @@
  */
 /*---------------------------------------------------------------------------*/
 /**
- * \addtogroup nrf-platforms
+ * \addtogroup nrf
+ * @{
+ *
+ * \addtogroup nrf-52832 nRF52832
  * @{
  *
  * \file
- *      Platform implementation for nRF
+ *      Header with configuration defines to nrf 52832
  * \author
  *      Yago Fontoura do Rosario <yago.rosario@hotmail.com.br>
  */
 /*---------------------------------------------------------------------------*/
-#include "contiki.h"
-
-#include "dev/gpio-hal.h"
-#include "dev/button-hal.h"
-#include "dev/leds.h"
-#include "dev/serial-line.h"
-
-#include "random.h"
-#include "int-master.h"
-#include "sensors.h"
-#include "uarte-arch.h"
-#include "linkaddr-arch.h"
-#include "reset-arch.h"
-
-#include "dw1000.h"
-
-#include "lpm.h"
-
+#ifndef NRF52832_CONF_H_
+#define NRF52832_CONF_H_
 /*---------------------------------------------------------------------------*/
-/* Log configuration */
-#include "sys/log.h"
-#define LOG_MODULE "NRF"
-#define LOG_LEVEL LOG_LEVEL_MAIN
+#ifndef NETSTACK_CONF_RADIO
+#define NETSTACK_CONF_RADIO        nullradio_driver
+#endif /* NETSTACK_CONF_RADIO */
 /*---------------------------------------------------------------------------*/
-void
-platform_init_stage_one(void)
-{
-  gpio_hal_init();
-  leds_init();
-}
+#endif /* NRF52832_CONF_H_ */
 /*---------------------------------------------------------------------------*/
-void
-platform_init_stage_two(void)
-{
-  button_hal_init();
-
-  /* Seed value is ignored since hardware RNG is used. */
-  random_init(0x5678);
-
-#if PLATFORM_HAS_UARTE
-  uarte_init();
-  serial_line_init();
-#if BUILD_WITH_SHELL
-  uarte_set_input(serial_line_input_byte);
-#endif /* BUILD_WITH_SHELL */
-#endif /* PLATFORM_HAS_UARTE */
-  populate_link_address();
-
-  reset_debug();
-}
-/*---------------------------------------------------------------------------*/
-void
-platform_init_stage_three(void)
-{
-
-  dw1000_driver.set_value(RADIO_PARAM_PAN_ID, 0xabcd);
-  dw1000_driver.set_value(RADIO_PARAM_16BIT_ADDR,(((uint8_t*)&linkaddr_node_addr)[0]) << 8 | (((uint8_t*)&linkaddr_node_addr)[1])); // converting from big-endian format
- // dw1000_driver.set_value(RADIO_PARAM_16BIT_ADDR,0x89 << 8 | 0xbe); // converting from big-endian format
-  dw1000_driver.off();
-
-  process_start(&sensors_process, NULL);
-}
-/*---------------------------------------------------------------------------*/
-void
-platform_idle()
-{
-  lpm_drop();
-}
-/*---------------------------------------------------------------------------*/
-/**
- * @}
+/** 
+ * @} 
+ * @} 
  */

@@ -1,5 +1,8 @@
 include $(CONTIKI_CPU)/Makefile.nrfx  
 
+CONTIKI_CPU_SOURCEFILES += nrf-ieee-driver-arch.c
+CONTIKI_CPU_DIRS += net
+
 LDSCRIPT ?= $(CONTIKI_CPU)/lib/nrfx/mdk/nrf5340_xxaa_network.ld
 CFLAGS += -DNRF5340_XXAA_NETWORK
 
@@ -14,6 +17,8 @@ NRFJPROG_OPTIONS=-f NRF53 --coprocessor CP_NETWORK
 CFLAGS += -DCPU_CONF_PATH=\"nrf5340-network-conf.h\"
 
 TARGET_LIBFILES += -lm
+
+include $(CONTIKI_CPU)/Makefile.rtt
 
 include $(CONTIKI)/$(CONTIKI_NG_CM33_DIR)/Makefile.cm33+nodsp
 

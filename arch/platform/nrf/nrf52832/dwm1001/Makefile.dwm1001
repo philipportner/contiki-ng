@@ -1,0 +1,23 @@
+BOARD_SOURCEFILES += board-leds.c
+BOARD_SOURCEFILES += board-buttons.c
+BOARD_SOURCEFILES += board-sensors.c
+
+CFLAGS += -DBOARD_CONF_PATH=\"nrf52832-dwm1001-conf.h\"
+CFLAGS += -DNRFX_SPI_ENABLED
+CFLAGS += -DNRFX_SPI0_ENABLED
+CFLAGS += -DNRFX_SPI1_ENABLED
+
+### Include the common nrf52832 makefile
+include $(PLATFORM_ROOT_DIR)/nrf52832/Makefile.nrf52832
+
+CONTIKI_TARGET_DIRS += nrf52832/dwm1001
+
+MODULES += $(CONTIKI_NG_DRIVERS_RADIO_DIR)/dw1000
+MODULES += $(CONTIKI_NG_DRIVERS_RADIO_DIR)/dw1000/decadriver
+
+CONTIKI_SOURCEFILES += dw1000-ranging.c
+CONTIKI_SOURCEFILES += deca_device.c deca_params_init.c deca_range_tables.c
+CONTIKI_SOURCEFILES += dw1000-arch.c dw1000.c dw1000-ranging.c dw1000-config.c dw1000-util.c dw1000-cir.c dw1000-diag.c dw1000-statetime.c
+CONTIKI_SOURCEFILES += nrfx_spi.c
+
+TARGET_LIBFILES+=-lm

@@ -3,17 +3,20 @@ CONTIKI_CPU_DIRS += .
 CONTIKI_CPU_DIRS += dev
 CONTIKI_CPU_DIRS += sys
 CONTIKI_CPU_DIRS += os
-CONTIKI_CPU_DIRS += net
+
+NRF_USE_RTT?=0
+
+ifeq ($(NRF_USE_RTT),0)
+  CONTIKI_CPU_SOURCEFILES += dbg-arch.c
+endif
 
 ### CPU-dependent source files
 CONTIKI_CPU_SOURCEFILES += rtimer-arch.c
 CONTIKI_CPU_SOURCEFILES += watchdog-arch.c
 CONTIKI_CPU_SOURCEFILES += clock-arch.c
-CONTIKI_CPU_SOURCEFILES += dbg-arch.c
 CONTIKI_CPU_SOURCEFILES += gpio-hal-arch.c
 CONTIKI_CPU_SOURCEFILES += int-master-arch.c
 CONTIKI_CPU_SOURCEFILES += random-arch.c
-CONTIKI_CPU_SOURCEFILES += nrf-ieee-driver-arch.c
 CONTIKI_CPU_SOURCEFILES += uarte-arch.c
 CONTIKI_CPU_SOURCEFILES += temp-arch.c
 CONTIKI_CPU_SOURCEFILES += linkaddr-arch.c

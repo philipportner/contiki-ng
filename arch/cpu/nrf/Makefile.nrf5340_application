@@ -1,5 +1,8 @@
 include $(CONTIKI_CPU)/Makefile.nrfx  
 
+CONTIKI_CPU_SOURCEFILES += nrf-ieee-driver-arch.c
+CONTIKI_CPU_DIRS += net
+
 LDSCRIPT ?= $(NRFX_ROOT)/mdk/nrf5340_xxaa_application.ld
 CFLAGS += -DNRF5340_XXAA_APPLICATION
 
@@ -18,6 +21,8 @@ CFLAGS += -mfpu=fpv5-sp-d16
 
 LDFLAGS += -mfloat-abi=hard 
 LDFLAGS += -mfpu=fpv5-sp-d16
+
+include $(CONTIKI_CPU)/Makefile.rtt
 
 include $(CONTIKI)/$(CONTIKI_NG_CM33_DIR)/Makefile.cm33
 
