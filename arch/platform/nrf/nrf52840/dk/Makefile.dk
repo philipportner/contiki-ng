@@ -1,6 +1,7 @@
 BOARD_SOURCEFILES += board-leds.c
 BOARD_SOURCEFILES += board-buttons.c
 BOARD_SOURCEFILES += board-sensors.c
+BOARD_SOURCEFILES += board-init.c
 
 CFLAGS += -DBOARD_CONF_PATH=\"nrf52840-dk-conf.h\"
 

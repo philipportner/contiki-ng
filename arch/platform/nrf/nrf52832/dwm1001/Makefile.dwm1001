@@ -1,11 +1,14 @@
 BOARD_SOURCEFILES += board-leds.c
 BOARD_SOURCEFILES += board-buttons.c
 BOARD_SOURCEFILES += board-sensors.c
+BOARD_SOURCEFILES += board-init.c
 
 CFLAGS += -DBOARD_CONF_PATH=\"nrf52832-dwm1001-conf.h\"
 CFLAGS += -DNRFX_SPI_ENABLED
 CFLAGS += -DNRFX_SPI0_ENABLED
 CFLAGS += -DNRFX_SPI1_ENABLED
+CFLAGS += -DCONFIG_GPIO_AS_PINRESET
+
 
 ### Include the common nrf52832 makefile
 include $(PLATFORM_ROOT_DIR)/nrf52832/Makefile.nrf52832

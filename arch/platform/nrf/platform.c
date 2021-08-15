@@ -52,9 +52,9 @@
 #include "linkaddr-arch.h"
 #include "reset-arch.h"
 
-#include "dw1000.h"
-
 #include "lpm.h"
+
+extern void board_init(void);
 
 /*---------------------------------------------------------------------------*/
 /* Log configuration */
@@ -92,11 +92,7 @@ platform_init_stage_two(void)
 void
 platform_init_stage_three(void)
 {
-
-  dw1000_driver.set_value(RADIO_PARAM_PAN_ID, 0xabcd);
-  dw1000_driver.set_value(RADIO_PARAM_16BIT_ADDR,(((uint8_t*)&linkaddr_node_addr)[0]) << 8 | (((uint8_t*)&linkaddr_node_addr)[1])); // converting from big-endian format
- // dw1000_driver.set_value(RADIO_PARAM_16BIT_ADDR,0x89 << 8 | 0xbe); // converting from big-endian format
-  dw1000_driver.off();
+  board_init();
 
   process_start(&sensors_process, NULL);
 }

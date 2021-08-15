@@ -86,10 +86,6 @@
 #define SPI1_IRQ_PRIORITY 6
 #define SPI_INSTANCE      0 
 /*---------------------------------------------------------------------------*/
-#define NRFX_SPI_ENABLED 1
-#define NRFX_SPI0_ENABLED 1
-#define NRFX_SPI1_ENABLED 1
-/*---------------------------------------------------------------------------*/
 #ifndef DW1000_CONF_RX_ANT_DLY
 #define DW1000_CONF_RX_ANT_DLY 16455 // TODO: needs calibration
 #endif
