@@ -39,6 +39,7 @@
  */
 
 #include "dw1000.h"
+#include "dw1000-diag.h"
 #include "dw1000-arch.h"
 #include "dw1000-ranging.h"
 #include "dw1000-config.h"
@@ -59,7 +60,7 @@
 #define LOG_LEVEL LOG_LEVEL_DBG
 
 
-#define DEBUG 0
+#define DEBUG 1
 #if DEBUG
 #include <stdio.h>
 #define PRINTF(...) printf(__VA_ARGS__)
@@ -157,8 +158,10 @@ static radio_result_t dw1000_set_object(radio_param_t param, const void *src, si
 static void
 rx_ok_cb(const dwt_cb_data_t *cb_data)
 {
-  
-
+  dw1000_dbg_cir_t debug;
+  static uint16_t sleep = 0;
+  debug.status_reg = cb_data->status;
+  debug.rx_on_delay = sleep;
 
 
   /*LEDS_TOGGLE(LEDS_GREEN); */
@@ -195,6 +198,8 @@ rx_ok_cb(const dwt_cb_data_t *cb_data)
                 log10f(N * N))
                 - A;
     #endif
+
+    dw1000_tug_print_diagnostics_json(true, false,&debug);
     return;
   }
   /* got a non-ranging packet: reset the ranging module if */
@@ -238,22 +243,53 @@ rx_to_cb(const dwt_cb_data_t *cb_data)
 }
 /*---------------------------------------------------------------------------*/
 /* Callback to process RX error events */
+// static void
+// rx_err_cb(const dwt_cb_data_t *cb_data)
+// {
+// #if DW1000_RANGING_ENABLED
+//   dw1000_range_reset();
+// #endif
+// #if DEBUG
+//   dw_dbg_event = RECV_ERROR;
+//   radio_status = cb_data->status;
+//   process_poll(&dw1000_dbg_process);
+// #endif
+//   dw1000_on();
+//
+//   /* Set LED PC8 */
+//   /*LEDS_TOGGLE(LEDS_RED); // not informative with frame filtering */
+// }
 static void
 rx_err_cb(const dwt_cb_data_t *cb_data)
 {
-#if DW1000_RANGING_ENABLED
-  dw1000_range_reset();
-#endif
-#if DEBUG
-  dw_dbg_event = RECV_ERROR;
+  dw1000_dbg_cir_t debug;
+  static uint16_t sleep = 5;
   radio_status = cb_data->status;
-  process_poll(&dw1000_dbg_process);
-#endif
-  dw1000_on();
+  debug.status_reg = cb_data->status;
+  debug.rx_on_delay = sleep;
+  //deca_sleep(1);
+  //uint64_t time = RTIMER_NOW();
+  //time = time*1000;
+  //time = time/RTIMER_ARCH_SECOND;
+  //printf("Err Callback  %lu \n",(uint32_t)time);
+  //dwt_setrxtimeout(0);
+  if(radio_status & (SYS_STATUS_RXSFDTO)) { //| SYS_STATUS_RXRFSL | SYS_STATUS_RXPHE
+    dwt_setdelayedtrxtime(dwt_readsystimestamphi32()+1872004); // 15E-3/(15.65E-12 * 2^9) = 1248003 delay for 
+    dwt_rxenable(DWT_START_RX_DELAYED);
+    deca_sleep(sleep);
+    dw1000_tug_print_diagnostics_json(true, false,&debug);
 
-  /* Set LED PC8 */
-  /*LEDS_TOGGLE(LEDS_RED); // not informative with frame filtering */
+    dwt_forcetrxoff();
+    dwt_rxreset();
+    //deca_sleep(1000);
+    dwt_setrxtimeout(0);
+    dwt_rxenable(DWT_START_RX_IMMEDIATE);
+  } else {
+    dwt_setrxtimeout(0);
+    dwt_rxenable(DWT_START_RX_IMMEDIATE);
+  }
 }
+
 
 /*---------------------------------------------------------------------------*/
 /* Callback to process TX confirmation events */

@@ -42,6 +42,8 @@
 #include <math.h>
 #include <stdio.h>
 #include "dw1000-diag.h"
+#include "dw1000-config.h"
+#include "rtimer.h"
 
 /* Reads raw diagnostic data from the radio and computes the received signal
  * power levels for the first path and for the overall transmission according
@@ -107,3 +109,165 @@ dw1000_print_diagnostics(dw1000_diagnostics_t *d) {
     d->dwt_rxdiag.stdNoise
   );
 }
+#define SPI_READ_LIMIT 128
+typedef uint32_t dw1000_cir_sample_t;
+#define DW1000_CIR_LEN_PRF16 992
+#define DW1000_CIR_LEN_PRF64 1016
+#define DW1000_CIR_SAMPLE_SIZE (sizeof(dw1000_cir_sample_t))
+#define DW1000_CIR_MAX_LEN DW1000_CIR_LEN_PRF64
+
+typedef struct {
+  int16_t real;
+  int16_t imag;
+} dw1000_cir_sample_t2;
+
+uint16_t dw1000_read_cir(uint16_t s1, uint16_t n_samples, uint8_t* samples) {
+  uint16_t max_samples = (dw1000_get_current_cfg()->prf == DWT_PRF_64M) ? 
+                           DW1000_CIR_LEN_PRF64 : 
+                           DW1000_CIR_LEN_PRF16;
+
+  if (s1 >= max_samples) {
+    printf("Invalid index");
+    return 0;
+  }
+
+  // adjusting the length to read w.r.t. the accumulator tail size
+  if (s1 + n_samples >= max_samples) {
+    n_samples = max_samples - s1;
+  }
+
+  uint16_t start_byte_idx = s1 * DW1000_CIR_SAMPLE_SIZE;
+  uint16_t len_bytes      = n_samples * DW1000_CIR_SAMPLE_SIZE;
+  
+  uint16_t read_idx  = start_byte_idx;
+  uint8_t* write_pos = (uint8_t*)&samples[1]; // we begin from index 1
+
+#if (SPI_READ_LIMIT > 0)
+  uint16_t read_bytes = 0;
+  while (read_bytes < len_bytes) {
+    uint16_t chunk_size = len_bytes - read_bytes;
+    if (chunk_size > SPI_READ_LIMIT) {
+      chunk_size = SPI_READ_LIMIT;
+    }
+
+    // we need to save one byte from the previous chunk because dwt_readaccdata() always
+    // writes zero to the first byte of the current chunk
+    uint8_t save_byte = *(write_pos-1);
+    dwt_readaccdata(write_pos-1, chunk_size + 1, read_idx);
+    *(write_pos-1) = save_byte;
+    read_bytes += chunk_size;
+    read_idx += chunk_size;
+    write_pos += chunk_size;
+  }
+#else
+  dwt_readaccdata(write_pos-1, len_bytes + 1, read_idx);
+#endif
+  //samples[0].u32 = s1;
+
+  return n_samples;
+}
+#define MAX_CIR 1015*4
+void print_cir_buf(uint8_t *buf, uint16_t n_samples) {
+ /* dw1000_cir_sample_t2 *buf2 = (dw1000_cir_sample_t2 *)buf;
+  uint32_t test[1015];
+  uint64_t start = RTIMER_NOW();
+  for(uint16_t i=0;i<1015;i++) {
+    test[i] = (uint32_t) sqrtf(powf(buf2->real,2) + powf(buf2->real,2));
+  }
+
+  uint64_t end = RTIMER_NOW();
+  uint64_t time = (end - start)*1000;
+  time = time/RTIMER_ARCH_SECOND;
+  printf("process time %lu \n",(uint32_t)time);
+  printf(" \n %lu \n",test[0]);*/
+
+  printf("[");
+  for(uint16_t k = 0; k<MAX_CIR; k++) {
+    watchdog_periodic();
+      printf("\"%02X\"",buf[k]);
+      if(k!=MAX_CIR-1) printf(",");
+      //watchdog_periodic();
+  }
+  printf("]");
+}
+
+
+
+uint16_t dw1000_tug_print_cir() {
+  uint8_t cir_buf[DW1000_CIR_MAX_LEN*4];
+  // print all from the beginning
+  dw1000_read_cir(0, DW1000_CIR_MAX_LEN,cir_buf);
+  print_cir_buf(&cir_buf[1],DW1000_CIR_MAX_LEN*4);
+  return DW1000_CIR_MAX_LEN*4;//dw1000_print_cir_samples_from_radio(0, DW1000_CIR_MAX_LEN); // DW1000_CIR_MAX_LEN
+}
+
+void dw1000_tug_print_payload(){
+  const size_t buf_len = 128;
+  uint8_t buf[buf_len];
+  uint32_t frame_len = dwt_read32bitreg(RX_FINFO_ID) & RX_FINFO_RXFL_MASK_1023;
+
+  //if(frame_len > buf_len) return;
+  //dwt_readrxdata(buf, frame_len, 0);
+  dwt_readrxdata(buf, buf_len, 0);
+
+  printf("[");
+  for(uint8_t i = 0; i < frame_len; i++){
+    printf("\"%02X\"", buf[i]);
+    if(i != frame_len - 1) printf(",");
+  }
+  printf("]");
+
+}
+
+void dw1000_tug_print_diagnostics_json(bool with_cir, bool with_payload,dw1000_dbg_cir_t* debug){
+  dwt_rxdiag_t diag;
+  uint64_t rx_timestamp;
+  int32_t rx_cri;
+  uint32_t status_reg;
+  //uint32_t state_reg;
+  uint16_t cir_pwr;
+  uint16_t pacc_nosat;
+
+  dwt_readdiagnostics(&diag);
+  dwt_readrxtimestamp((uint8_t*)&rx_timestamp);
+  rx_cri = dwt_readcarrierintegrator();
+  status_reg = debug->status_reg; // dwt_read32bitreg(SYS_STATUS_ID); //has been read at this point already
+
+  cir_pwr = (dwt_read32bitoffsetreg(RX_FQUAL_ID, 32) >> 16);
+  
+  pacc_nosat = dwt_read16bitoffsetreg(DRX_CONF_ID, 0x2C);
+
+  // print data as json
+    uint64_t time = RTIMER_NOW();
+    time = time*1000;
+    time = time/RTIMER_ARCH_SECOND;
+    printf("{");
+    printf("\"time\": %lu ,",(uint32_t)time);
+    printf("\"maxNoise\": %u,",          diag.maxNoise);
+    printf("\"stdNoise\": %u,",          diag.stdNoise);
+    printf("\"firstPathIndex\": %u,",    diag.firstPath);
+    printf("\"firstPathAmp1\": %u,",     diag.firstPathAmp1);
+    printf("\"firstPathAmp2\": %u,",     diag.firstPathAmp2);
+    printf("\"firstPathAmp3\": %u,",     diag.firstPathAmp3);
+    printf("\"maxGrowthCIR\": %u,",      diag.maxGrowthCIR);
+    printf("\"rxPreamCount\": %u,",      diag.rxPreamCount);
+    printf("\"cirPower\": %u,",          cir_pwr);
+    printf("\"cri_ppm\": %ld,",          rx_cri);
+    printf("\"pacc_nosat\": %u,",        pacc_nosat);
+    printf("\"status_reg\":\"0x%lx\",",     status_reg);
+    printf("\"rx_on_delay\":\"%u\"",     debug->rx_on_delay);
+    //printf("\"stateReg\":\"0x%lx \"",      state_reg);
+
+    if(with_cir){
+      printf(",\"CIR\":");
+      dw1000_tug_print_cir();
+    }
+
+    if(with_payload){
+      printf(",\"payload\":");
+      dw1000_tug_print_payload();
+    }
+
+  printf("}\n");
+}
+

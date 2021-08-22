@@ -44,6 +44,11 @@
 #include <stdint.h>
 
 typedef struct {
+  uint32 status_reg;
+  uint16_t rx_on_delay;
+} dw1000_dbg_cir_t;
+
+typedef struct {
   dwt_rxdiag_t dwt_rxdiag; /* Basic DW1000 diagnostics */
   uint16_t pac_nonsat; /* Non-saturated Preamble Accumulator Count (PAC) */
   uint32_t pac_correction; /* PAC normalization factor, affected by non-saturated PAC */
@@ -53,6 +58,7 @@ typedef struct {
   float rx_pwr; /* RX Power Level */
 } dw1000_diagnostics_t;
 
+void dw1000_tug_print_diagnostics_json(bool with_cir, bool with_payload,dw1000_dbg_cir_t* debug);
 /* Reads raw diagnostic data from the radio and computes the received signal
  * power levels for the first path and for the overall transmission according
  * to the DW1000 User Manual (4.7.1 "Estimating the signal power in the first

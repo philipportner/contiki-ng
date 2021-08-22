@@ -127,7 +127,7 @@ bool range_with(linkaddr_t *dst, dw1000_rng_type_t type);
 
 #define CIR_BUF_LEN 257
 extern uint8_t cir_buffer[CIR_BUF_LEN];
-extern dwt_rxdiag_t dw1000_diagnostics;
+// extern dwt_rxdiag_t dw1000_diagnostics;
 /* RSSI FPPL Extension */
 radio_value_t uwb_get_rssi(void);
 radio_value_t uwb_get_fppl(void);
