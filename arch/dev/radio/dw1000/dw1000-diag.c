@@ -44,6 +44,11 @@
 #include "dw1000-diag.h"
 #include "dw1000-config.h"
 #include "rtimer.h"
+#include "cir/cir.h"
+
+#include "sys/log.h"
+#define LOG_MODULE "UWB-TEST"
+#define LOG_LEVEL LOG_LEVEL_INFO
 
 /* Reads raw diagnostic data from the radio and computes the received signal
  * power levels for the first path and for the overall transmission according
@@ -219,55 +224,69 @@ void dw1000_tug_print_payload(){
 
 }
 
-void dw1000_tug_print_diagnostics_json(bool with_cir, bool with_payload,dw1000_dbg_cir_t* debug){
-  dwt_rxdiag_t diag;
-  uint64_t rx_timestamp;
-  int32_t rx_cri;
-  uint32_t status_reg;
-  //uint32_t state_reg;
-  uint16_t cir_pwr;
-  uint16_t pacc_nosat;
+cir_measurement cir_m = {0};
 
-  dwt_readdiagnostics(&diag);
-  dwt_readrxtimestamp((uint8_t*)&rx_timestamp);
-  rx_cri = dwt_readcarrierintegrator();
-  status_reg = debug->status_reg; // dwt_read32bitreg(SYS_STATUS_ID); //has been read at this point already
-
-  cir_pwr = (dwt_read32bitoffsetreg(RX_FQUAL_ID, 32) >> 16);
-  
-  pacc_nosat = dwt_read16bitoffsetreg(DRX_CONF_ID, 0x2C);
-
-  // print data as json
+void log_cir_measurement(dw1000_dbg_cir_t* debug)
+{
     uint64_t time = RTIMER_NOW();
     time = time*1000;
     time = time/RTIMER_ARCH_SECOND;
-    printf("{");
-    printf("\"time\": %lu ,",(uint32_t)time);
-    printf("\"maxNoise\": %u,",          diag.maxNoise);
-    printf("\"stdNoise\": %u,",          diag.stdNoise);
-    printf("\"firstPathIndex\": %u,",    diag.firstPath);
-    printf("\"firstPathAmp1\": %u,",     diag.firstPathAmp1);
-    printf("\"firstPathAmp2\": %u,",     diag.firstPathAmp2);
-    printf("\"firstPathAmp3\": %u,",     diag.firstPathAmp3);
-    printf("\"maxGrowthCIR\": %u,",      diag.maxGrowthCIR);
-    printf("\"rxPreamCount\": %u,",      diag.rxPreamCount);
-    printf("\"cirPower\": %u,",          cir_pwr);
-    printf("\"cri_ppm\": %ld,",          rx_cri);
-    printf("\"pacc_nosat\": %u,",        pacc_nosat);
-    printf("\"status_reg\":\"0x%lx\",",     status_reg);
-    printf("\"rx_on_delay\":\"%u\"",     debug->rx_on_delay);
-    //printf("\"stateReg\":\"0x%lx \"",      state_reg);
-
-    if(with_cir){
-      printf(",\"CIR\":");
-      dw1000_tug_print_cir();
-    }
-
-    if(with_payload){
-      printf(",\"payload\":");
-      dw1000_tug_print_payload();
-    }
-
-  printf("}\n");
+    cir_m.time = 255;
+    // dw1000_read_cir(0, DW1000_CIR_MAX_LEN, cir_m.cir_buf);
 }
+
+// void dw1000_tug_print_diagnostics_json(bool with_cir, bool with_payload,dw1000_dbg_cir_t* debug){
+//   dwt_rxdiag_t diag;
+//   uint64_t rx_timestamp;
+//   int32_t rx_cri;
+//   uint32_t status_reg;
+//   //uint32_t state_reg;
+//   uint16_t cir_pwr;
+//   uint16_t pacc_nosat;
+//
+//   dwt_readdiagnostics(&diag);
+//   dwt_readrxtimestamp((uint8_t*)&rx_timestamp);
+//   rx_cri = dwt_readcarrierintegrator();
+//   status_reg = debug->status_reg; // dwt_read32bitreg(SYS_STATUS_ID); //has been read at this point already
+//
+//   cir_pwr = (dwt_read32bitoffsetreg(RX_FQUAL_ID, 32) >> 16);
+//
+//   pacc_nosat = dwt_read16bitoffsetreg(DRX_CONF_ID, 0x2C);
+//
+//   // print data as json
+//     uint64_t time = RTIMER_NOW();
+//     time = time*1000;
+//     time = time/RTIMER_ARCH_SECOND;
+//     int i = 0;
+//     // TODO: 255 chunks
+//     i += sprintf(uwb_buff, "{");
+//     i += sprintf(uwb_buff+i, "\"time\": %lu ,",(uint32_t)time);
+//     i += sprintf(uwb_buff+i, "\"maxNoise\": %u,",          diag.maxNoise);
+//     i += sprintf(uwb_buff+i, "\"stdNoise\": %u,",          diag.stdNoise);
+//     i += sprintf(uwb_buff+i, "\"firstPathIndex\": %u,",    diag.firstPath);
+//     // printf("\"firstPathAmp1\": %u,",     diag.firstPathAmp1);
+//     // printf("\"firstPathAmp2\": %u,",     diag.firstPathAmp2);
+//     // printf("\"firstPathAmp3\": %u,",     diag.firstPathAmp3);
+//     // printf("\"maxGrowthCIR\": %u,",      diag.maxGrowthCIR);
+//     // printf("\"rxPreamCount\": %u,",      diag.rxPreamCount);
+//     i += sprintf(uwb_buff+i, "\"cirPower\": %u,",          cir_pwr);
+//     i += sprintf(uwb_buff+i, "\"cri_ppm\": %ld,",          rx_cri);
+//     i += sprintf(uwb_buff+i, "\"pacc_nosat\": %u,",        pacc_nosat);
+//     i += sprintf(uwb_buff+i, "\"status_reg\":\"0x%lx\",",     status_reg);
+//     i += sprintf(uwb_buff+i, "\"rx_on_delay\":\"%u\"",     debug->rx_on_delay);
+//     //printf("\"stateReg\":\"0x%lx \"",      state_reg);
+//
+//     if(with_cir){
+//       // printf(",\"CIR\":");
+//       dw1000_tug_print_cir();
+//     }
+//
+//     if(with_payload){
+//       // printf(",\"payload\":");
+//       // dw1000_tug_print_payload();
+//     }
+//
+//   i += sprintf(uwb_buff+i, "}\n");
+//   uwb_buff[i] = '\0';
+// }
 

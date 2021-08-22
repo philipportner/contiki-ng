@@ -58,6 +58,7 @@ typedef struct {
   float rx_pwr; /* RX Power Level */
 } dw1000_diagnostics_t;
 
+void log_cir_measurement();
 void dw1000_tug_print_diagnostics_json(bool with_cir, bool with_payload,dw1000_dbg_cir_t* debug);
 /* Reads raw diagnostic data from the radio and computes the received signal
  * power levels for the first path and for the overall transmission according

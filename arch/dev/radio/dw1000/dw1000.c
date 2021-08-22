@@ -158,10 +158,10 @@ static radio_result_t dw1000_set_object(radio_param_t param, const void *src, si
 static void
 rx_ok_cb(const dwt_cb_data_t *cb_data)
 {
-  dw1000_dbg_cir_t debug;
-  static uint16_t sleep = 0;
-  debug.status_reg = cb_data->status;
-  debug.rx_on_delay = sleep;
+  // dw100_dbg_cir_t debug;
+  // static uint16_t sleep = 0;
+  // debug.status_reg = cb_data->status;
+  // debug.rx_on_delay = sleep;
 
 
   /*LEDS_TOGGLE(LEDS_GREEN); */
@@ -199,7 +199,8 @@ rx_ok_cb(const dwt_cb_data_t *cb_data)
                 - A;
     #endif
 
-    dw1000_tug_print_diagnostics_json(true, false,&debug);
+    log_cir_measurement(NULL);
+    // dw1000_tug_print_diagnostics_json(true, false,&debug);
     return;
   }
   /* got a non-ranging packet: reset the ranging module if */
@@ -262,11 +263,11 @@ rx_to_cb(const dwt_cb_data_t *cb_data)
 static void
 rx_err_cb(const dwt_cb_data_t *cb_data)
 {
-  dw1000_dbg_cir_t debug;
+  // dw1000_dbg_cir_t debug;
   static uint16_t sleep = 5;
   radio_status = cb_data->status;
-  debug.status_reg = cb_data->status;
-  debug.rx_on_delay = sleep;
+  // debug.status_reg = cb_data->status;
+  // debug.rx_on_delay = sleep;
   //deca_sleep(1);
   //uint64_t time = RTIMER_NOW();
   //time = time*1000;
@@ -277,7 +278,7 @@ rx_err_cb(const dwt_cb_data_t *cb_data)
     dwt_setdelayedtrxtime(dwt_readsystimestamphi32()+1872004); // 15E-3/(15.65E-12 * 2^9) = 1248003 delay for 
     dwt_rxenable(DWT_START_RX_DELAYED);
     deca_sleep(sleep);
-    dw1000_tug_print_diagnostics_json(true, false,&debug);
+    // dw1000_tug_print_diagnostics_json(true, false,&debug);
 
     dwt_forcetrxoff();
     dwt_rxreset();
@@ -783,9 +784,9 @@ PROCESS_THREAD(dw1000_dbg_process, ev, data)
     PROCESS_WAIT_EVENT();
     if(ev == PROCESS_EVENT_POLL) {
       r1 = radio_status;
-      printf("RX FAIL(%u) %02x %02x %02x %02x\n",
-             dw_dbg_event, (uint8_t)(r1 >> 24), (uint8_t)(r1 >> 16),
-             (uint8_t)(r1 >> 8), (uint8_t)r1);
+      // printf("RX FAIL(%u) %02x %02x %02x %02x\n",
+      //        dw_dbg_event, (uint8_t)(r1 >> 24), (uint8_t)(r1 >> 16),
+      //        (uint8_t)(r1 >> 8), (uint8_t)r1);
     }
     if(etimer_expired(&et) && !dw1000_is_sleeping) {
       r1 = dwt_read32bitoffsetreg(SYS_STATUS_ID, 0);

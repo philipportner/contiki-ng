@@ -66,7 +66,7 @@
 #define DEBUG_RNG_PERIODIC 0
 
 // print debug info on failed ranging attempts
-#define DEBUG_RNG_FAILED 1
+#define DEBUG_RNG_FAILED 0
 
 // print inside interrupts (typically dangerous)
 #define DEBUG_RNG_INT 0
