@@ -23,5 +23,6 @@ CONTIKI_SOURCEFILES += dw1000-ranging.c
 CONTIKI_SOURCEFILES += deca_device.c deca_params_init.c deca_range_tables.c
 CONTIKI_SOURCEFILES += dw1000-arch.c dw1000.c dw1000-ranging.c dw1000-config.c dw1000-util.c dw1000-cir.c dw1000-diag.c dw1000-statetime.c
 CONTIKI_SOURCEFILES += nrfx_spi.c
+CONTIKI_SOURCEFILES += cir.c
 
 TARGET_LIBFILES+=-lm
