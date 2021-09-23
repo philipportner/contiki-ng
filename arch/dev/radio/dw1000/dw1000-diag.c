@@ -40,6 +40,7 @@
 #include "deca_regs.h"
 #include "deca_device_api.h"
 #include <math.h>
+#include <stdint.h>
 #include <stdio.h>
 #include "dw1000-diag.h"
 #include "dw1000-config.h"
@@ -127,8 +128,8 @@ typedef struct {
 } dw1000_cir_sample_t2;
 
 uint16_t dw1000_read_cir(uint16_t s1, uint16_t n_samples, uint8_t* samples) {
-  uint16_t max_samples = (dw1000_get_current_cfg()->prf == DWT_PRF_64M) ? 
-                           DW1000_CIR_LEN_PRF64 : 
+  uint16_t max_samples = (dw1000_get_current_cfg()->prf == DWT_PRF_64M) ?
+                           DW1000_CIR_LEN_PRF64 :
                            DW1000_CIR_LEN_PRF16;
 
   if (s1 >= max_samples) {
@@ -143,7 +144,7 @@ uint16_t dw1000_read_cir(uint16_t s1, uint16_t n_samples, uint8_t* samples) {
 
   uint16_t start_byte_idx = s1 * DW1000_CIR_SAMPLE_SIZE;
   uint16_t len_bytes      = n_samples * DW1000_CIR_SAMPLE_SIZE;
-  
+
   uint16_t read_idx  = start_byte_idx;
   uint8_t* write_pos = (uint8_t*)&samples[1]; // we begin from index 1
 
@@ -171,7 +172,7 @@ uint16_t dw1000_read_cir(uint16_t s1, uint16_t n_samples, uint8_t* samples) {
 
   return n_samples;
 }
-#define MAX_CIR 1015*4
+#define MAX_CIR DW1000_CIR_MAX_LEN*4
 void print_cir_buf(uint8_t *buf, uint16_t n_samples) {
  /* dw1000_cir_sample_t2 *buf2 = (dw1000_cir_sample_t2 *)buf;
   uint32_t test[1015];
@@ -189,7 +190,7 @@ void print_cir_buf(uint8_t *buf, uint16_t n_samples) {
   printf("[");
   for(uint16_t k = 0; k<MAX_CIR; k++) {
     watchdog_periodic();
-      printf("\"%02X\"",buf[k]);
+      printf("\"%02X\"\n",buf[k]);
       if(k!=MAX_CIR-1) printf(",");
       //watchdog_periodic();
   }
@@ -224,69 +225,9 @@ void dw1000_tug_print_payload(){
 
 }
 
-cir_measurement cir_m = {0};
-
-void log_cir_measurement(dw1000_dbg_cir_t* debug)
-{
-    uint64_t time = RTIMER_NOW();
-    time = time*1000;
-    time = time/RTIMER_ARCH_SECOND;
-    cir_m.time = 255;
-    // dw1000_read_cir(0, DW1000_CIR_MAX_LEN, cir_m.cir_buf);
+cir_measurement cir_m;
+void log_cir_measurement(dw1000_dbg_cir_t *debug) {
+  dw1000_read_cir(0, DW1000_CIR_MAX_LEN, cir_m.cir_buf);
+  cir_m.time = 255;
+  send_cir_measurement(&cir_m);
 }
-
-// void dw1000_tug_print_diagnostics_json(bool with_cir, bool with_payload,dw1000_dbg_cir_t* debug){
-//   dwt_rxdiag_t diag;
-//   uint64_t rx_timestamp;
-//   int32_t rx_cri;
-//   uint32_t status_reg;
-//   //uint32_t state_reg;
-//   uint16_t cir_pwr;
-//   uint16_t pacc_nosat;
-//
-//   dwt_readdiagnostics(&diag);
-//   dwt_readrxtimestamp((uint8_t*)&rx_timestamp);
-//   rx_cri = dwt_readcarrierintegrator();
-//   status_reg = debug->status_reg; // dwt_read32bitreg(SYS_STATUS_ID); //has been read at this point already
-//
-//   cir_pwr = (dwt_read32bitoffsetreg(RX_FQUAL_ID, 32) >> 16);
-//
-//   pacc_nosat = dwt_read16bitoffsetreg(DRX_CONF_ID, 0x2C);
-//
-//   // print data as json
-//     uint64_t time = RTIMER_NOW();
-//     time = time*1000;
-//     time = time/RTIMER_ARCH_SECOND;
-//     int i = 0;
-//     // TODO: 255 chunks
-//     i += sprintf(uwb_buff, "{");
-//     i += sprintf(uwb_buff+i, "\"time\": %lu ,",(uint32_t)time);
-//     i += sprintf(uwb_buff+i, "\"maxNoise\": %u,",          diag.maxNoise);
-//     i += sprintf(uwb_buff+i, "\"stdNoise\": %u,",          diag.stdNoise);
-//     i += sprintf(uwb_buff+i, "\"firstPathIndex\": %u,",    diag.firstPath);
-//     // printf("\"firstPathAmp1\": %u,",     diag.firstPathAmp1);
-//     // printf("\"firstPathAmp2\": %u,",     diag.firstPathAmp2);
-//     // printf("\"firstPathAmp3\": %u,",     diag.firstPathAmp3);
-//     // printf("\"maxGrowthCIR\": %u,",      diag.maxGrowthCIR);
-//     // printf("\"rxPreamCount\": %u,",      diag.rxPreamCount);
-//     i += sprintf(uwb_buff+i, "\"cirPower\": %u,",          cir_pwr);
-//     i += sprintf(uwb_buff+i, "\"cri_ppm\": %ld,",          rx_cri);
-//     i += sprintf(uwb_buff+i, "\"pacc_nosat\": %u,",        pacc_nosat);
-//     i += sprintf(uwb_buff+i, "\"status_reg\":\"0x%lx\",",     status_reg);
-//     i += sprintf(uwb_buff+i, "\"rx_on_delay\":\"%u\"",     debug->rx_on_delay);
-//     //printf("\"stateReg\":\"0x%lx \"",      state_reg);
-//
-//     if(with_cir){
-//       // printf(",\"CIR\":");
-//       dw1000_tug_print_cir();
-//     }
-//
-//     if(with_payload){
-//       // printf(",\"payload\":");
-//       // dw1000_tug_print_payload();
-//     }
-//
-//   i += sprintf(uwb_buff+i, "}\n");
-//   uwb_buff[i] = '\0';
-// }
-

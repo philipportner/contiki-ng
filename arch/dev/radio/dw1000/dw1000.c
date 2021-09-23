@@ -60,7 +60,7 @@
 #define LOG_LEVEL LOG_LEVEL_DBG
 
 
-#define DEBUG 1
+#define DEBUG 0
 #if DEBUG
 #include <stdio.h>
 #define PRINTF(...) printf(__VA_ARGS__)
@@ -89,8 +89,8 @@ typedef enum {
   TX_SUCCESS,
 } dw1000_event_t;
 static dw1000_event_t dw_dbg_event;
-static uint32_t radio_status;
 #endif
+static uint32_t radio_status;
 
 /* Static variables */
 static uint16_t data_len; /* received data length (payload without CRC) */
@@ -142,7 +142,7 @@ static void tx_conf_cb(const dwt_cb_data_t *cb_data);
 static int dw1000_init(void);
 static int dw1000_prepare(const void *payload, unsigned short payload_len);
 static int dw1000_transmit(unsigned short transmit_len);
-static int dw1000_send(const void *payload, unsigned short payload_len);
+static int dw1000_send(const void *payload, uint16_t payload_len);
 static int dw1000_radio_read(void *buf, unsigned short buf_len);
 static int dw1000_channel_clear(void);
 static int dw1000_receiving_packet(void);
@@ -172,7 +172,7 @@ rx_ok_cb(const dwt_cb_data_t *cb_data)
       #if DW1000_READ_RXDIAG
         dwt_readdiagnostics(&dw1000_diag);
         dw1000_last_rxtime = RTIMER_NOW();
-        
+
         /* rssi [dBm] = 10*log10((C*2^17)/N^2)-A
           * C = CIR_PWR (reg 0x12)
           * A = constant -> 113.77 for 16MHz PRF, 121.74 for 64MHz PRF
@@ -199,7 +199,6 @@ rx_ok_cb(const dwt_cb_data_t *cb_data)
                 - A;
     #endif
 
-    log_cir_measurement(NULL);
     // dw1000_tug_print_diagnostics_json(true, false,&debug);
     return;
   }
@@ -213,6 +212,9 @@ rx_ok_cb(const dwt_cb_data_t *cb_data)
   frame_pending = true;
 #if DEBUG
   radio_status = cb_data->status;
+#endif
+#ifdef NODE
+    log_cir_measurement(NULL);
 #endif
   /* if we have auto-ACKs enabled and an ACK was requested, */
   /* don't signal the reception until the TX done interrupt */
@@ -275,7 +277,7 @@ rx_err_cb(const dwt_cb_data_t *cb_data)
   //printf("Err Callback  %lu \n",(uint32_t)time);
   //dwt_setrxtimeout(0);
   if(radio_status & (SYS_STATUS_RXSFDTO)) { //| SYS_STATUS_RXRFSL | SYS_STATUS_RXPHE
-    dwt_setdelayedtrxtime(dwt_readsystimestamphi32()+1872004); // 15E-3/(15.65E-12 * 2^9) = 1248003 delay for 
+    dwt_setdelayedtrxtime(dwt_readsystimestamphi32()+1872004); // 15E-3/(15.65E-12 * 2^9) = 1248003 delay for
     dwt_rxenable(DWT_START_RX_DELAYED);
     deca_sleep(sleep);
     // dw1000_tug_print_diagnostics_json(true, false,&debug);
@@ -375,9 +377,10 @@ dw1000_init(void)
 }
 /*---------------------------------------------------------------------------*/
 static int
-dw1000_prepare(const void *payload, unsigned short payload_len)
+dw1000_prepare(const void *payload, uint16_t payload_len)
 {
-  uint8_t frame_len;
+    printf("trento prepate\n");
+  uint16_t frame_len;
 
   if (dw1000_is_sleeping) {
     PRINTF("Err: TX prepare requested while sleeping\n");
@@ -392,11 +395,12 @@ dw1000_prepare(const void *payload, unsigned short payload_len)
 #endif
 
   frame_len = payload_len + DW1000_CRC_LEN;
-  
-  if (frame_len > 127) {
-    PRINTF("Err: TX len %u\n", frame_len);
-    return RADIO_TX_ERR;
-  }
+
+  // TODO: I guess trento does not support extended packages
+  // if (frame_len > 127) {
+  //   PRINTF("Err: TX len %u\n", frame_len);
+  //   return RADIO_TX_ERR;
+  // }
 
   /* Write frame data to DW1000 and prepare transmission */
   dwt_writetxdata(frame_len, (uint8_t *)payload, 0); /* Zero offset in TX buffer. */
@@ -410,12 +414,13 @@ static int
 dw1000_transmit(unsigned short transmit_len)
 {
   int ret;
+    printf("trento transmit\n");
 
   if (dw1000_is_sleeping) {
     PRINTF("Err: transmit requested while sleeping\n");
     return RADIO_TX_ERR;
   }
-  
+
   if (!frame_uploaded) {
     PRINTF("Err: transmit without prepare\n");
     return RADIO_TX_ERR;
@@ -454,11 +459,12 @@ dw1000_transmit(unsigned short transmit_len)
     clock_delay_usec(1);
     /* TODO: add a timeout */
   }
+  printf("tx+done\n");
   return RADIO_TX_OK;
 }
 /*---------------------------------------------------------------------------*/
-static int
-dw1000_send(const void *payload, unsigned short payload_len)
+int
+dw1000_send(const void *payload, uint16_t payload_len)
 {
   if (dw1000_is_sleeping) {
     PRINTF("Err: send requested while sleeping\n");
@@ -559,7 +565,7 @@ static radio_result_t
 dw1000_get_value(radio_param_t param, radio_value_t *value)
 {
   if (dw1000_is_sleeping)
-    return RADIO_RESULT_ERROR;  
+    return RADIO_RESULT_ERROR;
 
   return RADIO_RESULT_NOT_SUPPORTED;
 }
@@ -568,7 +574,7 @@ static radio_result_t
 dw1000_set_value(radio_param_t param, radio_value_t value)
 {
   if (dw1000_is_sleeping)
-    return RADIO_RESULT_ERROR;  
+    return RADIO_RESULT_ERROR;
 
   switch(param) {
   case RADIO_PARAM_PAN_ID:
@@ -599,7 +605,7 @@ static radio_result_t
 dw1000_get_object(radio_param_t param, void *dest, size_t size)
 {
   if (dw1000_is_sleeping)
-    return RADIO_RESULT_ERROR;  
+    return RADIO_RESULT_ERROR;
 
   if(param == RADIO_PARAM_64BIT_ADDR) {
     if(size != 8 || dest == NULL) {
@@ -621,7 +627,7 @@ static radio_result_t
 dw1000_set_object(radio_param_t param, const void *src, size_t size)
 {
   if (dw1000_is_sleeping)
-    return RADIO_RESULT_ERROR;  
+    return RADIO_RESULT_ERROR;
 
   if(param == RADIO_PARAM_64BIT_ADDR) {
     if(size != 8 || src == NULL) {
@@ -728,22 +734,22 @@ int
 dw1000_wakeup(void)
 {
   dw1000_disable_interrupt();
-  
+
   if(dwt_readdevid() != DWT_DEVICE_ID) { // Device was in deep sleep (the first read fails)
     dw1000_arch_wakeup_nowait();
     deca_sleep(5); // need to sleep 5 ms to let crystal stabilise
-    
+
     if(dwt_readdevid() != DWT_DEVICE_ID) {
       dw1000_is_sleeping = 1;
       return DWT_ERROR;
     }
-  } 
+  }
 
   dw1000_is_sleeping = 0;
-  
+
   /* Restore antenna delay values for ranging */
   dw1000_restore_ant_delay();
-  
+
 #if LINKADDR_SIZE == 8
   // DW1000 does not preserve the extended address while sleeping
   NETSTACK_RADIO.set_object(RADIO_PARAM_64BIT_ADDR, linkaddr_node_addr.u8, 8);
@@ -762,7 +768,7 @@ range_with(linkaddr_t *dst, dw1000_rng_type_t type)
 #if DW1000_RANGING_ENABLED
   if (dw1000_is_sleeping)
     return false;
- 
+
   wait_ack_txdone = 0;
   frame_pending   = 0;
   frame_uploaded  = 0;
@@ -791,7 +797,7 @@ PROCESS_THREAD(dw1000_dbg_process, ev, data)
     if(etimer_expired(&et) && !dw1000_is_sleeping) {
       r1 = dwt_read32bitoffsetreg(SYS_STATUS_ID, 0);
       r2 = dwt_read8bitoffsetreg(SYS_STATUS_ID, 4);
-      printf("*** SYS_STATUS %02x %02x %02x %02x %02x ***\n",
+      PRINTF("*** SYS_STATUS %02x %02x %02x %02x %02x ***\n",
              (uint8_t)(r1 >> 24), (uint8_t)(r1 >> 16), (uint8_t)(r1 >> 8),
              (uint8_t)(r1), r2);
       dw_dbg_event = 0;

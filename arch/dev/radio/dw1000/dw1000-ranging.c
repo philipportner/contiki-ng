@@ -912,7 +912,7 @@ PROCESS_THREAD(dw1000_rng_dbg_process, ev, data)
     etimer_set(&et, CLOCK_SECOND * 10);
     PROCESS_WAIT_EVENT();
     if(etimer_expired(&et)) {
-      printf("dwr: periodic: my %d their %d, ost %d st %d ss %d\n", my_seqn, recv_seqn, old_state, state, err_status);
+      PRINTF("dwr: periodic: my %d their %d, ost %d st %d ss %d\n", my_seqn, recv_seqn, old_state, state, err_status);
     }
   }
   PROCESS_END();

@@ -91,6 +91,9 @@
 #define DW1000_RANGING_ENABLED 1
 #endif
 
+#ifdef NODE
+#undef DW1000_RANGING_ENABLED
+#endif
 
 
 /*---------------------------------------------------------------------------*/
