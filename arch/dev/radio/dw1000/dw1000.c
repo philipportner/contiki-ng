@@ -44,6 +44,7 @@
 #include "dw1000-ranging.h"
 #include "dw1000-config.h"
 #include "dw1000-shared-state.h"
+#include "dw1000-util.h"
 #include "net/packetbuf.h"
 //#include "net/rime/rimestats.h"
 #include "net/netstack.h"
@@ -59,6 +60,7 @@
 #define LOG_MODULE "DWD"
 #define LOG_LEVEL LOG_LEVEL_DBG
 
+#include "snaploc.h"
 
 #define DEBUG 0
 #if DEBUG
@@ -213,9 +215,7 @@ rx_ok_cb(const dwt_cb_data_t *cb_data)
 #if DEBUG
   radio_status = cb_data->status;
 #endif
-#ifdef NODE
-    log_cir_measurement(NULL);
-#endif
+
   /* if we have auto-ACKs enabled and an ACK was requested, */
   /* don't signal the reception until the TX done interrupt */
   if(auto_ack_enabled && (cb_data->status & SYS_STATUS_AAT)) {
@@ -683,10 +683,35 @@ PROCESS_THREAD(dw1000_process, ev, data)
     dw1000_radio_read(packetbuf_dataptr(), data_len);
     packetbuf_set_datalen(data_len);
 
-    /* Re-enable RX to keep listening */
-    dw1000_on();
-    /*PRINTF("dw1000_process: calling recv cb, len %d\n", data_len); */
-    NETSTACK_MAC.input();
+#ifdef NODE
+    frame_802154_t *frame = (frame_802154_t *)packetbuf_dataptr();
+    packet_resp_conc_t *packet = (packet_resp_conc_t *)&(frame->payload[0]);
+    if (packet->packet_type == RESP)
+    {
+        log_cir_measurement(packet);
+        dw1000_on();
+    }
+    // else if (packet->packet_type == SYNC)
+    // {
+    //     float ppm = dw1000_get_ppm_offset(dw1000_get_current_cfg());
+    //     uint8_t old_trim = dwt_getxtaltrim();
+    //     uint8_t best_trim = dw1000_get_best_trim_code(ppm, old_trim);
+    //     dwt_setxtaltrim(best_trim);
+    //     dw1000_on();
+    // }
+    // IF SYNC syncon dw1000util
+    else
+    {
+        /* Re-enable RX to keep listening */
+        dw1000_on();
+        /*PRINTF("dw1000_process: calling recv cb, len %d\n", data_len); */
+        NETSTACK_MAC.input();
+    }
+#else
+        dw1000_on();
+        /*PRINTF("dw1000_process: calling recv cb, len %d\n", data_len); */
+        NETSTACK_MAC.input();
+#endif
   }
 
   PROCESS_END();

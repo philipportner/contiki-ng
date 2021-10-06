@@ -226,8 +226,9 @@ void dw1000_tug_print_payload(){
 }
 
 cir_measurement cir_m;
-void log_cir_measurement(dw1000_dbg_cir_t *debug) {
-  dw1000_read_cir(0, DW1000_CIR_MAX_LEN, cir_m.cir_buf);
-  cir_m.time = 255;
-  send_cir_measurement(&cir_m);
+void log_cir_measurement(dw1000_dbg_cir_t *debug)
+{
+    dw1000_read_cir(0, DW1000_CIR_MAX_LEN, cir_m.cir_buf);
+    cir_m.time = 255;
+    send_cir_measurement(&cir_m);
 }
