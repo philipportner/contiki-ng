@@ -691,15 +691,14 @@ PROCESS_THREAD(dw1000_process, ev, data)
         log_cir_measurement(packet);
         dw1000_on();
     }
-    // else if (packet->packet_type == SYNC)
-    // {
-    //     float ppm = dw1000_get_ppm_offset(dw1000_get_current_cfg());
-    //     uint8_t old_trim = dwt_getxtaltrim();
-    //     uint8_t best_trim = dw1000_get_best_trim_code(ppm, old_trim);
-    //     dwt_setxtaltrim(best_trim);
-    //     dw1000_on();
-    // }
-    // IF SYNC syncon dw1000util
+    else if (packet->packet_type == SYNC)
+    {
+        float ppm = dw1000_get_ppm_offset(dw1000_get_current_cfg());
+        uint8_t old_trim = dwt_getxtaltrim();
+        uint8_t best_trim = dw1000_get_best_trim_code(ppm, old_trim);
+        dwt_setxtaltrim(best_trim);
+        dw1000_on();
+    }
     else
     {
         /* Re-enable RX to keep listening */
